@@ -188,7 +188,7 @@
 
 .file-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   gap: 20px;
 }
 
@@ -197,6 +197,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 20px;
+  min-width: 400px;
   transition: all 0.2s ease;
 }
 
@@ -206,20 +207,25 @@
 }
 
 .file-name {
-  font-weight: 600;
-  color: #1e293b;
+  font-weight: 700;
+  color: #1a202c;
   margin-bottom: 8px;
+  font-size: 1rem;
 }
 
 .file-meta {
   font-size: 0.85rem;
-  color: #64748b;
+  color: #2d3748;
   margin-bottom: 12px;
+  font-weight: 500;
 }
 
 .file-actions-inline {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
 }
 
 /* Buttons */
@@ -268,6 +274,9 @@
 .btn-sm {
   padding: 6px 12px;
   font-size: 0.8rem;
+  min-width: 70px;
+  text-align: center;
+  white-space: nowrap;
 }
 
 /* Data Table Styles */
@@ -396,5 +405,36 @@
   
   .quick-stats {
     grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .file-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .file-item {
+    min-width: unset;
+  }
+  
+  .file-actions-inline {
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .file-actions-inline .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Medium screens - tablet */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .file-list {
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  }
+  
+  .file-item {
+    min-width: 350px;
+  }
+}
   }
 }

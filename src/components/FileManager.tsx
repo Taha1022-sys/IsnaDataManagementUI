@@ -215,6 +215,15 @@ Lütfen backend bağlantısını kontrol edin ve tekrar deneyin.`)
     clearMessages()
     try {
       console.log('🔄 Reprocessing file:', fileName)
+      console.log('📝 Original file name:', fileName)
+      console.log('🔗 Encoded file name:', encodeURIComponent(fileName))
+      
+      // Backend bağlantısını test et
+      const connectionTest = await excelService.testConnection()
+      if (!connectionTest.success) {
+        throw new Error('Backend bağlantısı kurulamadı. Lütfen backend servisinin çalıştığından emin olun.')
+      }
+      
       const response = await excelService.readExcelData(fileName)
       console.log('📋 Reprocess response:', response)
       
@@ -223,14 +232,67 @@ Lütfen backend bağlantısını kontrol edin ve tekrar deneyin.`)
         await fetchFiles() // Dosya listesini yenile
       } else {
         console.error('❌ Reprocess failed:', response.message)
-        setError(`Dosya yeniden işlenirken hata oluştu: ${response.message || 'Bilinmeyen hata'}`)
+        
+        // Daha detaylı hata mesajları
+        let errorMessage = response.message || 'Bilinmeyen hata'
+        if (errorMessage.includes('500')) {
+          errorMessage = `Sunucu hatası: Excel dosyası "${fileName}" işlenirken hata oluştu. Dosya formatını veya içeriğini kontrol edin.`
+        } else if (errorMessage.includes('404')) {
+          errorMessage = `Dosya bulunamadı: "${fileName}" dosyası sunucuda bulunamıyor.`
+        } else if (errorMessage.includes('400')) {
+          errorMessage = `Geçersiz dosya: "${fileName}" dosyasının formatı desteklenmiyor veya bozuk.`
+        }
+        
+        setError(`Dosya yeniden işlenirken hata oluştu: ${errorMessage}`)
       }
     } catch (error) {
       console.error('❌ Reprocess error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata'
-      setError(`Dosya yeniden işlenirken hata oluştu: ${errorMessage}`)
+      
+      // Network hatalarını özel olarak işle
+      if (errorMessage.includes('fetch') || errorMessage.includes('Network')) {
+        setError('Backend servisine bağlanılamıyor. Lütfen backend servisinin çalıştığından emin olun.')
+      } else if (errorMessage.includes('timeout')) {
+        setError('İşlem zaman aşımına uğradı. Dosya çok büyük olabilir veya backend yavaş yanıt veriyor.')
+      } else {
+        setError(`Dosya yeniden işlenirken hata oluştu: ${errorMessage}`)
+      }
     } finally {
       setLoading(false)
+    }
+  }
+
+  const testFileEndpoint = async (fileName: string) => {
+    console.log('🧪 Testing file endpoint for:', fileName)
+    try {
+      const encodedName = encodeURIComponent(fileName)
+      const testUrl = `${API_CONFIG.BASE_URL}/excel/files`
+      
+      console.log('🔗 Testing files endpoint:', testUrl)
+      const filesResponse = await fetch(testUrl)
+      console.log('📡 Files endpoint status:', filesResponse.status)
+      
+      if (filesResponse.ok) {
+        const filesData = await filesResponse.json()
+        console.log('📋 Available files:', filesData)
+        
+        const fileExists = filesData.data?.some((f: ExcelFile) => f.fileName === fileName)
+        console.log(`📁 File "${fileName}" exists on server:`, fileExists)
+        
+        if (!fileExists) {
+          setError(`Dosya "${fileName}" sunucuda bulunamıyor. Dosyayı yeniden yüklemeniz gerekebilir.`)
+          return
+        }
+      }
+      
+      // Şimdi read endpoint'ini test et
+      const readUrl = `${API_CONFIG.BASE_URL}/excel/read/${encodedName}`
+      console.log('🔗 Testing read endpoint:', readUrl)
+      
+      setSuccess(`Endpoint test edildi. Detaylar için console'u kontrol edin.`)
+    } catch (error) {
+      console.error('🧪 Test error:', error)
+      setError('Endpoint testi başarısız oldu.')
     }
   }
 
@@ -470,6 +532,14 @@ Lütfen backend bağlantısını kontrol edin ve tekrar deneyin.`)
                   title="Excel dosyasını yeniden işle"
                 >
                   🔄 Yeniden İşle
+                </button>
+                <button 
+                  className="btn btn-warning btn-sm"
+                  onClick={() => testFileEndpoint(file.fileName)}
+                  disabled={loading}
+                  title="Endpoint'i test et"
+                >
+                  🧪 Test Et
                 </button>
                 <button 
                   className="btn btn-secondary btn-sm"

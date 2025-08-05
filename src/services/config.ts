@@ -1,10 +1,20 @@
 // API Configuration
 export const API_CONFIG = {
   BASE_URL: 'http://localhost:5002/api', // HTTP endpoint kullan (HTTPS sertifika sorunları için)
-  TIMEOUT: 30000, // 30 saniye timeout
+  TIMEOUT: 60000, // 60 saniye timeout (Excel işlemi için daha uzun)
   HEADERS: {
     'Content-Type': 'application/json',
   }
+}
+
+// Safe URL encoding function for file names
+export const safeEncodeFileName = (fileName: string): string => {
+  // Türkçe karakterleri ve özel karakterleri güvenli şekilde encode et
+  return encodeURIComponent(fileName)
+    .replace(/'/g, "%27")
+    .replace(/\(/g, "%28")
+    .replace(/\)/g, "%29")
+    .replace(/\*/g, "%2A")
 }
 
 // API endpoint'leri
@@ -14,16 +24,16 @@ export const API_ENDPOINTS = {
     TEST: '/excel/test',
     FILES: '/excel/files',
     UPLOAD: '/excel/upload',
-    READ: (fileName: string) => `/excel/read/${encodeURIComponent(fileName)}`,
-    DATA: (fileName: string) => `/excel/data/${encodeURIComponent(fileName)}`,
+    READ: (fileName: string) => `/excel/read/${safeEncodeFileName(fileName)}`,
+    DATA: (fileName: string) => `/excel/data/${safeEncodeFileName(fileName)}`,
     UPDATE_DATA: '/excel/data',
     BULK_UPDATE: '/excel/data/bulk',
     ADD_ROW: '/excel/data',
     DELETE_DATA: (id: number) => `/excel/data/${id}`,
-    DELETE_FILE: (fileName: string) => `/excel/files/${encodeURIComponent(fileName)}`,
+    DELETE_FILE: (fileName: string) => `/excel/files/${safeEncodeFileName(fileName)}`,
     EXPORT: '/excel/export',
-    SHEETS: (fileName: string) => `/excel/sheets/${encodeURIComponent(fileName)}`,
-    STATISTICS: (fileName: string) => `/excel/statistics/${encodeURIComponent(fileName)}`,
+    SHEETS: (fileName: string) => `/excel/sheets/${safeEncodeFileName(fileName)}`,
+    STATISTICS: (fileName: string) => `/excel/statistics/${safeEncodeFileName(fileName)}`,
   },
   
   // Comparison Controller

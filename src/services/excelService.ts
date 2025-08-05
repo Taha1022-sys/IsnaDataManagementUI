@@ -1,4 +1,4 @@
-import { API_CONFIG, API_ENDPOINTS } from './config'
+import { API_CONFIG, API_ENDPOINTS, safeEncodeFileName } from './config'
 import type { 
   ApiResponse, 
   ExcelFile, 
@@ -200,8 +200,13 @@ class ExcelService {
       
       const result = await response.json()
       console.log('📦 GET Data result:', result)
+      console.log('📦 Raw result:', JSON.stringify(result, null, 2))
       console.log('✅ Data success:', result.success)
       console.log('📊 Data count:', result.data ? result.data.length : 'No data array')
+      console.log('📊 Data is array:', Array.isArray(result.data))
+      console.log('📊 Data first item:', result.data && result.data.length > 0 ? result.data[0] : 'No first item')
+      console.log('📋 Result message:', result.message)
+      console.log('📋 Result status:', result.status)
       
       return result
     } catch (error) {
@@ -324,10 +329,17 @@ class ExcelService {
   async readExcelData(fileName: string, sheetName?: string): Promise<ApiResponse> {
     try {
       console.log('📖 Reading Excel data for:', fileName, sheetName ? `(sheet: ${sheetName})` : '(all sheets)')
+      console.log('📝 Original file name:', fileName)
+      console.log('🔗 Encoded file name (standard):', encodeURIComponent(fileName))
+      console.log('🔗 Encoded file name (safe):', safeEncodeFileName(fileName))
       
       const params = sheetName ? `?sheetName=${encodeURIComponent(sheetName)}` : ''
       const url = `${API_CONFIG.BASE_URL}${API_ENDPOINTS.EXCEL.READ(fileName)}${params}`
       console.log('🔗 Read Excel URL:', url)
+      
+      // Request headers'ı logla
+      console.log('📋 Request method: POST')
+      console.log('📋 Request headers:', { ...API_CONFIG.HEADERS })
       
       const response = await this.fetchWithTimeout(url, {
         method: 'POST',
@@ -335,18 +347,35 @@ class ExcelService {
       
       console.log('📡 Read Excel response status:', response.status)
       console.log('📡 Read Excel response ok:', response.ok)
+      console.log('📡 Read Excel response headers:', Object.fromEntries(response.headers.entries()))
       
       if (!response.ok) {
         const errorText = await response.text()
         console.error('❌ Read Excel failed:', response.status, errorText)
+        console.error('❌ Response error text:', errorText)
         
         // HTTP status koduna göre daha spesifik hata mesajları
         if (response.status === 500) {
-          throw new Error(`Sunucu hatası (500): Excel dosyası işlenirken hata oluştu. Dosya formatını kontrol edin.`)
+          // 500 hatası için daha detaylı analiz
+          let detailedError = 'Excel dosyası işlenirken sunucu hatası oluştu.'
+          if (errorText.includes('encoding') || errorText.includes('charset')) {
+            detailedError += ' Dosya adındaki özel karakterler soruna neden olabilir.'
+          } else if (errorText.includes('format') || errorText.includes('corrupt')) {
+            detailedError += ' Dosya formatı bozuk veya desteklenmeyen bir Excel versiyonu olabilir.'
+          } else if (errorText.includes('memory') || errorText.includes('size')) {
+            detailedError += ' Dosya çok büyük olabilir.'
+          } else if (errorText.includes('sheet') || errorText.includes('worksheet')) {
+            detailedError += ' Excel sayfası yapısında sorun olabilir.'
+          }
+          throw new Error(`Sunucu hatası (500): ${detailedError}`)
         } else if (response.status === 404) {
-          throw new Error(`Dosya bulunamadı (404): "${fileName}" dosyası sunucuda bulunamıyor.`)
+          throw new Error(`Dosya bulunamadı (404): "${fileName}" dosyası sunucuda bulunamıyor. Dosyanın yüklendiğinden emin olun.`)
         } else if (response.status === 400) {
-          throw new Error(`Geçersiz istek (400): Dosya formatı veya parametreler hatalı.`)
+          throw new Error(`Geçersiz istek (400): Dosya formatı veya parametreler hatalı. Excel dosyası geçerli bir formatta olmalı.`)
+        } else if (response.status === 413) {
+          throw new Error(`Dosya çok büyük (413): "${fileName}" dosyası izin verilen maksimum boyutu aşıyor.`)
+        } else if (response.status === 415) {
+          throw new Error(`Desteklenmeyen format (415): "${fileName}" dosyası desteklenmeyen bir formatta.`)
         } else {
           throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`)
         }
@@ -354,17 +383,29 @@ class ExcelService {
       
       const result = await response.json()
       console.log('📦 Read Excel result:', result)
+      
+      // Başarılı yanıtı da kontrol et
+      if (!result.success && result.message) {
+        console.warn('⚠️ API returned success=false:', result.message)
+        throw new Error(result.message)
+      }
+      
       return result
     } catch (error) {
       console.error('Failed to read Excel data:', error)
       
       // Network hatası mı kontrol et
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error('Network hatası: Backend servisine bağlanılamıyor')
+        throw new Error('Network hatası: Backend servisine bağlanılamıyor. Lütfen backend servisinin çalıştığından emin olun.')
+      }
+      
+      // AbortController timeout hatası
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('İşlem zaman aşımına uğradı. Dosya çok büyük olabilir veya backend yavaş yanıt veriyor.')
       }
       
       // Zaten işlenmiş hata mesajlarını olduğu gibi geçir
-      if (error instanceof Error && error.message.includes('HTTP')) {
+      if (error instanceof Error && (error.message.includes('HTTP') || error.message.includes('hatası'))) {
         throw error
       }
       
