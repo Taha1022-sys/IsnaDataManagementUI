@@ -208,6 +208,25 @@ class ExcelService {
       console.log('📋 Result message:', result.message)
       console.log('📋 Result status:', result.status)
       
+      // Veri formatını kontrol et ve standardize et
+      if (result.success) {
+        if (!result.data) {
+          console.warn('⚠️ Success=true but no data field')
+          result.data = []
+        } else if (!Array.isArray(result.data)) {
+          console.warn('⚠️ Data is not array:', typeof result.data)
+          result.data = []
+        }
+        
+        // Her data item'ının gerekli alanlarının olduğunu kontrol et
+        if (result.data.length > 0) {
+          const firstItem = result.data[0]
+          if (!firstItem.id || !firstItem.data || !firstItem.rowIndex) {
+            console.warn('⚠️ Data items missing required fields:', firstItem)
+          }
+        }
+      }
+      
       return result
     } catch (error) {
       console.error('💥 Failed to fetch data:', error)

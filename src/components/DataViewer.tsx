@@ -240,8 +240,19 @@ const DataViewer: React.FC<DataViewerProps> = ({ selectedFile }) => {
     try {
       console.log('🔍 Fetching data for:', { selectedFile, selectedSheet, page, pageSize })
       
+      // Dosya adını temizle (çift uzantı problemi)
+      let cleanFileName = selectedFile
+      if (cleanFileName.endsWith('.xlsx.xlsx')) {
+        cleanFileName = cleanFileName.replace('.xlsx.xlsx', '.xlsx')
+        console.log('🧹 Cleaned filename in fetchData:', cleanFileName)
+      }
+      if (cleanFileName.endsWith('.xls.xls')) {
+        cleanFileName = cleanFileName.replace('.xls.xls', '.xls')
+        console.log('🧹 Cleaned filename in fetchData:', cleanFileName)
+      }
+      
       // Safe encode dosya ve sayfa adı
-      const encodedFileName = encodeURIComponent(selectedFile)
+      const encodedFileName = encodeURIComponent(cleanFileName)
       const encodedSheetName = encodeURIComponent(selectedSheet)
       
       // Test the URL that will be called
@@ -254,7 +265,7 @@ const DataViewer: React.FC<DataViewerProps> = ({ selectedFile }) => {
       console.log('📁 Checking if file exists on backend...')
       const filesCheck = await excelService.getFiles()
       if (filesCheck.success && filesCheck.data) {
-        const fileExists = filesCheck.data.some(f => f.fileName === selectedFile)
+        const fileExists = filesCheck.data.some(f => f.fileName === cleanFileName)
         console.log('� File exists on backend:', fileExists)
         
         if (!fileExists) {
@@ -263,7 +274,7 @@ const DataViewer: React.FC<DataViewerProps> = ({ selectedFile }) => {
         }
       }
       
-      const response = await excelService.getData(selectedFile, selectedSheet, page, pageSize)
+      const response = await excelService.getData(cleanFileName, selectedSheet, page, pageSize)
       console.log('📋 Data response:', response)
       console.log('📋 Response success:', response.success)
       console.log('📋 Response data type:', typeof response.data)
@@ -617,34 +628,146 @@ const DataViewer: React.FC<DataViewerProps> = ({ selectedFile }) => {
             📋 Log State
           </button>
           <button 
-            onClick={fetchData}
-            disabled={loading || !selectedFile || !selectedSheet}
-            className="btn btn-primary btn-sm"
-          >
-            🔄 Force Refresh
-          </button>
-          <button 
             onClick={async () => {
-              console.log('📊 Manual data load triggered')
+              console.log('🔧 API Direct Test başlatılıyor...')
               
               if (!selectedFile) {
                 setError('Lütfen önce bir dosya seçin')
                 return
               }
               
-              if (!selectedSheet && sheets.length > 0) {
-                console.log('📄 Auto-selecting first sheet:', sheets[0].name)
-                setSelectedSheet(sheets[0].name)
-                setTimeout(async () => {
-                  console.log('⏰ Delayed fetchData call')
-                  await fetchData()
-                }, 200)
-              } else if (selectedSheet) {
-                console.log('📊 Direct fetchData call')
-                await fetchData()
-              } else {
-                console.log('❌ No sheets available')
-                setError('Önce sayfaları yüklemek için "Tam Diagnoz" butonunu kullanın')
+              // Dosya adını temizle
+              let cleanFileName = selectedFile
+              if (cleanFileName.endsWith('.xlsx.xlsx')) {
+                cleanFileName = cleanFileName.replace('.xlsx.xlsx', '.xlsx')
+              }
+              if (cleanFileName.endsWith('.xls.xls')) {
+                cleanFileName = cleanFileName.replace('.xls.xls', '.xls')
+              }
+              
+              try {
+                // 1. Swagger'daki gibi direkt endpoint test et
+                const directUrl = `${API_CONFIG.BASE_URL}/excel/data/${encodeURIComponent(cleanFileName)}?page=1&pageSize=10`
+                console.log('🔗 Direct API URL:', directUrl)
+                
+                const directResponse = await fetch(directUrl)
+                console.log('📡 Direct response status:', directResponse.status)
+                console.log('📡 Direct response ok:', directResponse.ok)
+                
+                if (directResponse.ok) {
+                  const directResult = await directResponse.json()
+                  console.log('📦 Direct API result:', directResult)
+                  
+                  if (directResult.success && directResult.data && directResult.data.length > 0) {
+                    setSuccess(`✅ API direkt testi başarılı! ${directResult.data.length} kayıt bulundu. 
+                    
+Veri örneği: ${JSON.stringify(directResult.data[0], null, 2)}`)
+                    
+                    // Veriyi set et
+                    const sortedData = sortData(directResult.data, 'rowIndex', 'asc')
+                    setData(sortedData)
+                    
+                    // Sayfayı set et (eğer yoksa)
+                    if (!selectedSheet && directResult.availableSheets && directResult.availableSheets.length > 0) {
+                      setSelectedSheet(directResult.availableSheets[0])
+                    }
+                  } else {
+                    setError(`⚠️ API yanıt verdi ama veri yok:
+                    
+Success: ${directResult.success}
+Message: ${directResult.message}
+Data length: ${directResult.data ? directResult.data.length : 'null'}`)
+                  }
+                } else {
+                  const errorText = await directResponse.text()
+                  setError(`❌ API testi başarısız:
+
+Status: ${directResponse.status}
+Error: ${errorText}
+
+URL: ${directUrl}`)
+                }
+                
+              } catch (err) {
+                console.error('💥 Direct API test error:', err)
+                setError('API test hatası: ' + (err instanceof Error ? err.message : 'Bilinmeyen hata'))
+              }
+            }}
+            disabled={loading || !selectedFile}
+            className="btn btn-danger btn-sm"
+          >
+            � API Test
+          </button>
+          <button 
+            onClick={async () => {
+              console.log('📊 Veri Yükle butonuna tıklandı')
+              
+              if (!selectedFile) {
+                setError('Lütfen önce bir dosya seçin')
+                return
+              }
+              
+              setLoading(true)
+              clearMessages()
+              
+              try {
+                // 1. Önce sayfaları kontrol et/yükle
+                if (sheets.length === 0) {
+                  console.log('📄 Sayfalar yok, önce sayfaları yüklüyorum')
+                  await fetchSheets()
+                  
+                  // Sayfalar yüklendikten sonra tekrar kontrol et
+                  if (sheets.length === 0) {
+                    setError('Bu dosya için sayfa bulunamadı')
+                    return
+                  }
+                }
+                
+                // 2. Sayfa seçimi yap
+                let targetSheet = selectedSheet
+                if (!targetSheet && sheets.length > 0) {
+                  targetSheet = sheets[0].name
+                  console.log('📄 İlk sayfa otomatik seçildi:', targetSheet)
+                  setSelectedSheet(targetSheet)
+                }
+                
+                if (!targetSheet) {
+                  setError('Sayfa seçilemedi')
+                  return
+                }
+                
+                // 3. Veriyi yükle
+                console.log('📊 Veri yükleniyor:', { selectedFile, targetSheet })
+                
+                // Dosya adını temizle (çift uzantı problemi)
+                let cleanFileName = selectedFile
+                if (cleanFileName.endsWith('.xlsx.xlsx')) {
+                  cleanFileName = cleanFileName.replace('.xlsx.xlsx', '.xlsx')
+                  console.log('🧹 Cleaned filename:', cleanFileName)
+                }
+                if (cleanFileName.endsWith('.xls.xls')) {
+                  cleanFileName = cleanFileName.replace('.xls.xls', '.xls')
+                  console.log('🧹 Cleaned filename:', cleanFileName)
+                }
+                
+                const response = await excelService.getData(cleanFileName, targetSheet, page, pageSize)
+                console.log('📋 Veri yükleme sonucu:', response)
+                
+                if (response.success && response.data) {
+                  const sortedData = sortData(response.data, 'rowIndex', 'asc')
+                  setData(sortedData)
+                  setSuccess(`✅ ${sortedData.length} kayıt başarıyla yüklendi`)
+                  console.log('✅ Veri başarıyla yüklendi:', sortedData.length, 'kayıt')
+                } else {
+                  console.error('❌ Veri yükleme başarısız:', response.message)
+                  setError(response.message || 'Veri yüklenemedi')
+                }
+                
+              } catch (error) {
+                console.error('💥 Veri yükleme hatası:', error)
+                setError('Veri yükleme sırasında hata oluştu: ' + (error instanceof Error ? error.message : 'Bilinmeyen hata'))
+              } finally {
+                setLoading(false)
               }
             }}
             disabled={loading || !selectedFile}

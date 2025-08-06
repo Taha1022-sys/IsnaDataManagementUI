@@ -143,7 +143,19 @@ const FileManager: React.FC<FileManagerProps> = ({ onFileSelect, onNavigate }) =
       // 2. Yüklenen dosyanın Excel verilerini işle
       console.log('🔄 Processing Excel data for:', selectedFile.name)
       try {
-        const readResponse = await excelService.readExcelData(selectedFile.name)
+        // Dosya adından gereksiz uzantıları temizle
+        let cleanFileName = selectedFile.name
+        // .xlsx.xlsx gibi çift uzantıları temizle
+        if (cleanFileName.endsWith('.xlsx.xlsx')) {
+          cleanFileName = cleanFileName.replace('.xlsx.xlsx', '.xlsx')
+        }
+        if (cleanFileName.endsWith('.xls.xls')) {
+          cleanFileName = cleanFileName.replace('.xls.xls', '.xls')
+        }
+        
+        console.log('🧹 Cleaned file name:', cleanFileName)
+        
+        const readResponse = await excelService.readExcelData(cleanFileName)
         console.log('📋 Read Excel response:', readResponse)
         
         if (readResponse.success) {
@@ -224,7 +236,18 @@ Lütfen backend bağlantısını kontrol edin ve tekrar deneyin.`)
         throw new Error('Backend bağlantısı kurulamadı. Lütfen backend servisinin çalıştığından emin olun.')
       }
       
-      const response = await excelService.readExcelData(fileName)
+      // Dosya adından gereksiz uzantıları temizle
+      let cleanFileName = fileName
+      if (cleanFileName.endsWith('.xlsx.xlsx')) {
+        cleanFileName = cleanFileName.replace('.xlsx.xlsx', '.xlsx')
+      }
+      if (cleanFileName.endsWith('.xls.xls')) {
+        cleanFileName = cleanFileName.replace('.xls.xls', '.xls')
+      }
+      
+      console.log('🧹 Using cleaned file name for reprocess:', cleanFileName)
+      
+      const response = await excelService.readExcelData(cleanFileName)
       console.log('📋 Reprocess response:', response)
       
       if (response.success) {

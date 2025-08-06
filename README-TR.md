@@ -1,4 +1,4 @@
-# ISNA Data Management Project
+# ISNA Data Management Projesi
 
 Excel verilerini yönetmek, düzenlemek ve karşılaştırmak için geliştirilmiş tam kapsamlı web uygulaması.
 
@@ -8,6 +8,72 @@ Excel verilerini yönetmek, düzenlemek ve karşılaştırmak için geliştirilm
 - **Frontend**: React + TypeScript + Vite
 - **Veritabanı**: SQL Server / LocalDB
 - **Excel İşleme**: EPPlus Library
+
+## 📁 Klasör ve Dosya Yapısı
+
+### Kök Dizin
+
+| Klasör/Dosya | Açıklama |
+|--------------|----------|
+| `public/`    | Statik dosyalar (resimler, favicon, vs.) burada tutulur. |
+| `src/`       | Tüm uygulama kaynak kodları burada bulunur. |
+| `index.html` | Uygulamanın ana HTML dosyasıdır. |
+| `package.json` | Proje bağımlılıkları ve script tanımları burada tutulur. |
+| `tsconfig.json` | TypeScript yapılandırma dosyasıdır. |
+| `vite.config.ts` | Vite geliştirme sunucusu ve derleyici ayarları. |
+| `README.md`  | Proje hakkında genel bilgi ve kurulum talimatları. |
+
+### `src/` Klasörü
+
+| Klasör/Dosya | Açıklama |
+|--------------|----------|
+| `App.tsx`    | Uygulamanın ana React bileşeni. |
+| `main.tsx`   | React uygulamasının giriş noktası. |
+| `App.css`, `index.css` | Genel stil dosyaları. |
+| `assets/`    | Uygulamada kullanılan görseller. |
+| `components/`| Tüm React bileşenleri burada bulunur. |
+| `services/`  | API ile iletişim sağlayan servis fonksiyonları. |
+| `types/`     | TypeScript tip tanımlamaları. |
+| `utils/`     | Yardımcı fonksiyonlar ve test araçları. |
+
+#### `src/components/` Klasörü
+
+| Dosya | Açıklama |
+|-------|----------|
+| `DataViewer.tsx` | Excel verilerini tablo olarak gösteren, sayfa ve satır düzenleme işlemlerini yöneten ana bileşen. |
+| `Dashboard.tsx`  | Genel gösterge paneli bileşeni. |
+| `FileManager.tsx`| Dosya yükleme, silme ve listeleme işlemlerini yöneten bileşen. |
+| `Header.tsx`     | Uygulamanın üst menü çubuğu. |
+| `Sidebar.tsx`    | Sol menü çubuğu. |
+| `ChangeHistory.tsx` | Dosya ve satır değişiklik geçmişini gösterir. |
+| `DataComparison.tsx` | Farklı dosya/sayfa karşılaştırmalarını yönetir. |
+| `components.css` | Bileşenlere özel stil dosyası. |
+
+#### `src/services/` Klasörü
+
+| Dosya | Açıklama |
+|-------|----------|
+| `excelService.ts` | Excel dosyaları ile ilgili API çağrılarını içerir. |
+| `comparisonService.ts` | Dosya/sayfa karşılaştırma API çağrıları. |
+| `historyService.ts` | Değişiklik geçmişi API çağrıları. |
+| `config.ts` | API adresleri ve temel yapılandırmalar. |
+| `index.ts` | Servislerin merkezi dışa aktarımı. |
+
+#### `src/types/` Klasörü
+
+| Dosya | Açıklama |
+|-------|----------|
+| `index.ts` | Excel verisi, dosya, sayfa ve diğer tip tanımlamaları. |
+
+#### `src/utils/` Klasörü
+
+| Dosya | Açıklama |
+|-------|----------|
+| `comprehensiveDiagnosis.ts` | Gelişmiş hata teşhis fonksiyonları. |
+| `debugExcel.ts` | Excel dosyaları için hata ayıklama araçları. |
+| `diagnoseExcel.ts` | Excel dosyası işleme ve hata bulma fonksiyonları. |
+| `endpointTester.ts` | API uç noktalarını test etmek için yardımcı fonksiyonlar. |
+| `testBackend.ts` | Backend bağlantı ve işlev testleri. |
 
 ## 🚀 Kurulum ve Çalıştırma
 
@@ -63,12 +129,14 @@ app.UseCors("AllowReactApp");
 ## 🔧 Özellikler
 
 ### 📁 Dosya Yönetimi
+
 - Excel dosyası yükleme (.xlsx, .xls)
 - Dosya listesi görüntüleme
 - Dosya boyutu ve yükleme tarihi bilgileri
 - Dosya silme işlemleri
 
 ### 📊 Veri Görüntüleme
+
 - Excel verilerini tablo halinde görüntüleme
 - Sayfalama desteği
 - Satır bazında düzenleme
@@ -77,12 +145,14 @@ app.UseCors("AllowReactApp");
 - Sheet (çalışma sayfası) seçimi
 
 ### 🔍 Veri Karşılaştırma
+
 - İki farklı Excel dosyasını karşılaştırma
 - Aynı dosyanın farklı versiyonlarını karşılaştırma
 - Farklılıkları görsel olarak gösterme
 - Karşılaştırma raporları oluşturma
 
 ### 📈 Değişiklik Geçmişi
+
 - Tüm veri değişikliklerini takip etme
 - Kullanıcı bazında değişiklik geçmişi
 - Tarih filtreleme
@@ -169,75 +239,3 @@ Herhangi bir sorun yaşadığınızda:
 1. Browser console'da hata mesajlarını kontrol edin
 2. Backend log'larını inceleyin
 3. Network tab'da API çağrılarını kontrol edin
-
----
-
-## React + TypeScript + Vite Template Info
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
